@@ -1,7 +1,72 @@
 package Text::Xslate::Syntax::Any;
-use strict;
-use warnings;
-our $VERSION = '0.01';
+
+use Any::Moose;
+
+extends qw(Text::Xslate::Parser);
+
+has args_of_new => (
+    is => 'rw',
+    isa => 'ArrayRef',
+    default => sub { +[] },
+);
+
+has parser_table => (
+    is => 'rw',
+    isa => 'HashRef',
+    default => sub { +{} },
+);
+
+no Any::Moose;
+
+our $DETECT_SYNTAX  = \&detect_syntax_by_suffix;
+our $DEFAULT_SYNTAX = 'Kolon';
+
+__PACKAGE__->meta->make_immutable();
+
+sub new {
+    my $class = shift;
+    my $self  = $class->SUPER::new(@_);
+    $self->args_of_new([ @_ ]);
+    $self;
+}
+
+sub parse {
+    my($self, $input, %args) = @_;
+
+    $self->_load_parser($self->compiler->file, \$input)->parse($input, %args);
+}
+
+sub _load_parser {
+    my($self, $name, $input_ref) = @_;
+
+    my $syntax = $DETECT_SYNTAX->($name, $input_ref);
+
+    unless($self->parser_table->{$syntax}){
+        my $parser_class = Any::Moose::load_first_existing_class(
+            "Text::Xslate::Syntax::" . $syntax,
+            $syntax,
+        );
+        $self->parser_table->{$syntax} = $parser_class->new(@{ $self->args_of_new });
+    }
+    return $self->parser_table->{$syntax};
+}
+
+sub detect_syntax_by_suffix {
+    my($name, $input_ref) = @_;
+
+    my($suffix) = ($name =~ /\.([^.]+)\z/);
+    return $DEFAULT_SYNTAX unless $suffix;
+
+    if($suffix eq 'tx'){
+        return 'Kolon';
+    }elsif($suffix eq 'mtx'){
+        return 'Metakolon';
+    }elsif($suffix eq 'tt'){
+        return 'TTerse';
+    }
+    return $DEFAULT_SYNTAX;
+}
+
 
 1;
 __END__

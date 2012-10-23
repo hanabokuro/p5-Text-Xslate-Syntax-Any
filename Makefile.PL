@@ -2,7 +2,7 @@ use inc::Module::Install;
 name 'Text-Xslate-Syntax-Any';
 all_from 'lib/Text/Xslate/Syntax/Any.pm';
 
-# requires '';
+requires 'Text::Xslate' => 0;
 
 tests 't/*.t';
 author_tests 'xt';
