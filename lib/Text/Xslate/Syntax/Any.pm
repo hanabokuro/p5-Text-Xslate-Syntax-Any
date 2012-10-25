@@ -1,5 +1,7 @@
 package Text::Xslate::Syntax::Any;
 
+our $VERSION = '1.5015';
+
 use Any::Moose;
 
 extends qw(Text::Xslate::Parser);
@@ -18,7 +20,11 @@ has parser_table => (
 
 no Any::Moose;
 
-our $DETECT_SYNTAX  = \&detect_syntax_by_suffix;
+our $DETECT_SYNTAX  = generate_syntax_detecter__by_suffix({
+    tx  => 'Kolon',
+    mtx => 'Metakolon',
+    tt  => 'TTerse',
+});
 our $DEFAULT_SYNTAX = 'Kolon';
 
 __PACKAGE__->meta->make_immutable();
@@ -51,22 +57,16 @@ sub _load_parser {
     return $self->parser_table->{$syntax};
 }
 
-sub detect_syntax_by_suffix {
-    my($name, $input_ref) = @_;
+sub generate_syntax_detecter__by_suffix {
+    my $suffx_map = shift;
 
-    my($suffix) = ($name =~ /\.([^.]+)\z/);
-    return $DEFAULT_SYNTAX unless $suffix;
+    sub {
+        my($name, undef) = @_;
 
-    if($suffix eq 'tx'){
-        return 'Kolon';
-    }elsif($suffix eq 'mtx'){
-        return 'Metakolon';
-    }elsif($suffix eq 'tt'){
-        return 'TTerse';
-    }
-    return $DEFAULT_SYNTAX;
+        my($suffix) = ($name =~ /\.([^.]+)\z/);
+        $suffx_map->{$suffix || 'default'} || $DEFAULT_SYNTAX;
+    };
 }
-
 
 1;
 __END__
